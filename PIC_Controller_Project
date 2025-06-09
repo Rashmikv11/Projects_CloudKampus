@@ -1,0 +1,45 @@
+#include <xc.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "i2c.h"
+
+#define _XTAL_FREQ 4000000 // Define the operating frequency
+#define DOOR_SENSOR_PIN PORTBbits.RB0 // Pin connected to the door sensor
+#define LIGHT_PIN LATBbits.LATB1 // Pin connected to the interior light
+#define LED_PIN LATBbits.LATB2 // Pin connected to the LED
+
+bool doorStatus = false; // false = closed, true = open
+bool roofSwitchMode = true; // true = automatic, false = manual
+
+void setup() {
+    TRISBbits.TRISB0 = 1; // Set door sensor pin as input
+    TRISBbits.TRISB1 = 0; // Set light pin as output
+    TRISBbits.TRISB2 = 0; // Set LED pin as output
+
+    I2C_Master_Init(100000); // Initialize I2C Master with 100kHz clock
+}
+
+void loop() {
+    doorStatus = (DOOR_SENSOR_PIN == 0); // LOW means door is open
+    transmitDoorStatus();
+    controlLighting();
+    controlLED();
+    __delay_ms(1000); // Check door status every second
+}
+
+void transmitDoorStatus() {
+    I2C_Master_Start(); // Start I2C communication
+    I2C_Master_Write(0x08); // Address of the I2C slave device
+    I2C_Master_Write(doorStatus ? 'O' : 'C'); // Send 'O' for open, 'C' for closed
+    I2C_Master_Stop(); // Stop I2C communication
+}
+
+void controlLighting() {
+    if (roofSwitchMode) {
+        LIGHT_PIN = doorStatus ? 1 : 0; // Turn on light if door is open
+    }
+}
+
+void controlLED() {
+    LED_PIN = doorStatus ? 1 : 0; // Turn on LED if door is open
+}
