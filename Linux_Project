@@ -1,0 +1,71 @@
+Project: Linux System Cleanup Utility
+
+#Project Setup
+Create a Project Directory:
+mkdir linux_cleanup_utility
+cd linux_cleanup_utility
+
+#Create a Bash Script:
+touch cleanup.sh
+chmod +x cleanup.sh
+
+#Edit the Script:
+nano cleanup.sh
+
+#Create bash Code:
+#!/bin/bash
+
+# Function to calculate disk space before and after cleanup
+calculate_space() {
+    df -h / | grep '/' | awk '{print $4}'
+}
+
+# Function to delete temporary files
+delete_temp_files() {
+    echo "Deleting temporary files..."
+    sudo rm -rf /tmp/*
+    sudo rm -rf /var/tmp/*
+}
+
+# Function to delete cache files
+delete_cache_files() {
+    echo "Deleting cache files..."
+    sudo rm -rf ~/.cache/*
+    sudo rm -rf /var/cache/*
+}
+
+# Function to delete old log files
+delete_old_logs() {
+    echo "Deleting old log files..."
+    sudo find /var/log -type f -name "*.log" -mtime +7 -exec rm -f {} \;
+}
+
+# Function to delete unused packages
+delete_unused_packages() {
+    echo "Deleting unused packages..."
+    sudo apt-get autoremove -y
+    sudo apt-get clean
+}
+
+# Main function
+main() {
+    echo "Starting system cleanup..."
+    space_before=$(calculate_space)
+    echo "Disk space before cleanup: $space_before"
+
+    delete_temp_files
+    delete_cache_files
+    delete_old_logs
+    delete_unused_packages
+
+    space_after=$(calculate_space)
+    echo "Disk space after cleanup: $space_after"
+
+    echo "System cleanup completed!"
+}
+
+# Execute the main function
+main
+
+#Run the Script:
+./cleanup.sh
