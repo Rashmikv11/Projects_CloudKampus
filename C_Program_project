@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <float.h>
+
+#define MAX_LINE_LENGTH 1024
+#define THRESHOLD 95.0
+
+// Structure to hold temperature data
+typedef struct {
+    char timestamp[20];
+    char sensor_id[10];
+    float temperature;
+} TemperatureData;
+
+void read_csv(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    FILE *high_temp_file = fopen("high_temperature_data.csv", "w");
+    if (high_temp_file == NULL) {
+        perror("Error creating high temperature file");
+        fclose(file);
+        return;
+    }
+
+    fprintf(high_temp_file, "timestamp,sensor_id,temperature\n");
+
+    char line[MAX_LINE_LENGTH];
+    TemperatureData data;
+    int total_readings = 0;
+    float total_temperature = 0.0;
+    float max_temperature = FLT_MIN;
+    float min_temperature = FLT_MAX;
+
+    // Read the header line
+    if (fgets(line, sizeof(line), file)) {
+        printf("Header: %s", line);
+    }
+
+    // Read each line of the CSV file
+    while (fgets(line, sizeof(line), file)) {
+        // Parse the line
+        char *token = strtok(line, ",");
+        strcpy(data.timestamp, token);
+
+        token = strtok(NULL, ",");
+        strcpy(data.sensor_id, token);
+
+        token = strtok(NULL, ",");
+        data.temperature = atof(token);
+
+        // Update metrics
+        total_readings++;
+        total_temperature += data.temperature;
+        if (data.temperature > max_temperature) {
+            max_temperature = data.temperature;
+        }
+        if (data.temperature < min_temperature) {
+            min_temperature = data.temperature;
+        }
+
+        // Check for high temperature
+        if (data.temperature > THRESHOLD) {
+            fprintf(high_temp_file, "%s,%s,%.2f\n", data.timestamp, data.sensor_id, data.temperature);
+        }
+
+        // Print the data
+        printf("Timestamp: %s, Sensor ID: %s, Temperature: %.2f\n",
+               data.timestamp, data.sensor_id, data.temperature);
+    }
+
+    // Calculate average temperature
+    float average_temperature = total_temperature / total_readings;
+
+    // Print metrics
+    printf("\nMetrics:\n");
+    printf("Total Readings: %d\n", total_readings);
+    printf("Average Temperature: %.2f\n", average_temperature);
+    printf("Maximum Temperature: %.2f\n", max_temperature);
+    printf("Minimum Temperature: %.2f\n", min_temperature);
+
+    fclose(file);
+    fclose(high_temp_file);
+}
+
+int main() {
+    const char *filename = "temperature_data.csv";
+    read_csv(filename);
+    return 0;
+}
